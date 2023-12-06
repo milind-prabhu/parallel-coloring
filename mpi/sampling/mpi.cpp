@@ -28,8 +28,9 @@ void receive_palette(vector<int> palette[], int list_size, int from, int n, int 
     int q2 = (from + 1) * (n / size);
 
     vector<int> arr(list_size * (q2 - q1 + 1));
+    cout << "Process " << rank << "waiting for " << from << endl;
     MPI_Recv(&arr[0], arr.size(), MPI_INT, from, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    cout << "Process " << rank << " receiving " << from << endl;
+    cout << "Process " << rank << " received " << from << endl;
 
     for (int i = q1; i <= q2; i++)
     {
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
 
 
     // Each process reads data from its assigned file
-    string file_name = "graph" + to_string(rank) + ".txt";
+    string file_name = "./test_cases/random_graphs/test_cases/graph" + to_string(rank) + ".txt";
     ifstream file(file_name);
 
     string data;
@@ -142,6 +143,7 @@ int main(int argc, char *argv[])
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+    cout << "Process " << rank << " has palette" << endl;
 
     // Send palette to neighbors - this requires synchronization
     // The idea is to edge color the processor graph which is a clique.
@@ -157,7 +159,7 @@ int main(int argc, char *argv[])
                 continue;
             if ((p + rank) % size == round)
             {
-                if (rank < p)
+                if (rank > p)
                 {
                     receive_palette(palette, list_size, p, n, size);
                     send_palette(palette, list_size, p, n1, n2);
@@ -169,9 +171,10 @@ int main(int argc, char *argv[])
                 }
                 break;
             }
-            // synchronize all processes
-            MPI_Barrier(MPI_COMM_WORLD);
+            
         }
+        // synchronize all processes
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
 
@@ -229,15 +232,37 @@ int main(int argc, char *argv[])
             adj_conflict[conflict_edges[2*i+1]].push_back(conflict_edges[2*i]);
         }
         vector <int> final_coloring = list_coloring(n, adj_conflict, palette);
-
-    }
-    if(rank == 0)
-    {
         end_time = MPI_Wtime();
         cout <<"---------------------------------------------------------------------------------------" << endl;
         cout << "File IO time: " << file_io_end_time - start_time << endl;
         cout << "Execution time: " << end_time - file_io_end_time << endl;
         cout << "Total time: " << end_time - start_time << endl;
+        cout <<"---------------------------------------------------------------------------------------" << endl;
+        //checking the produced coloring
+        string file_name = "./test_cases/random_graphs/test_cases/full_graph.txt";
+        ifstream file(file_name);
+        bool failed = false;
+        set <int> num_colors;
+        while(getline(file, data))
+        {
+            stringstream buffer(data);
+            int u, v;
+            buffer >> u >> v;
+            if(final_coloring[u] == final_coloring[v])
+            {
+                cout << "Failed coloring" << endl;
+                failed = true;
+                break;
+            }
+                num_colors.insert(final_coloring[u]);
+                num_colors.insert(final_coloring[v]);
+        }
+        if(!failed)
+        {
+            cout << "Coloring is correct" << endl;
+            cout << "Number of colors used: " << num_colors.size() << endl;
+            cout << "Max degree: " << delta << endl;
+        }
     }
     MPI_Finalize();
 
