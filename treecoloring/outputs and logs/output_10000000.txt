@@ -1,0 +1,12 @@
+Time elapsed: 9.01107 ms
+Number of iterations: 3
+isValidColoring: 1
+Time elapsed: 9.00771 ms
+Number of iterations: 3
+isValidColoring: 1
+Time elapsed: 9.00941 ms
+Number of iterations: 3
+isValidColoring: 1
+Time elapsed: 9.01482 ms
+Number of iterations: 3
+isValidColoring: 1
